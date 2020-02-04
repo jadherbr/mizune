@@ -1,0 +1,24 @@
+.videos-area {
+  background-color: #ffffff;
+  margin-bottom: 5px;  
+  padding: 20px;
+}
+
+.video-titulo {
+  font-size: 16px;
+  margin: 0px;
+  font-weight: bold;
+}
+
+.video-descricao {
+  font-size: 14px;
+  margin-top: 6px;
+  color: #777777; 
+}
+
+.videos-vertodos {
+  color: #000000;
+  font-size: 12px;
+  font-family: "Poppins", sans-serif; 
+  padding-top: 5px;
+}

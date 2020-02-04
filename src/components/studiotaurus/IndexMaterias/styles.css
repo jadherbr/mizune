@@ -1,0 +1,40 @@
+.materias-area {
+  background-color: #ffffff;
+  max-width: 300px;
+  width: 100%; 
+  padding: 20px; 
+}
+
+.single-materia {
+  position: relative;
+  z-index: 1;
+  border-bottom: 1px solid #ebebeb;
+  padding-bottom: 15px;
+  margin-bottom: 15px; 
+}
+
+.single-materia .imagem {
+  position: relative;
+  max-width: 70px;
+}
+
+.single-materia:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none; 
+}
+
+.single-materia .content {
+  padding-left: 15px;
+  margin-top: -5px; 
+}
+.single-materia .content .titulo {
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: block; 
+  color: #777777;
+}
+.single-materia .content .manchete {
+  font-size: 14px;
+  color: #777777; 
+}

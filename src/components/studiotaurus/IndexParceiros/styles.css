@@ -1,0 +1,26 @@
+.parceiro-area {
+  background-color: #ffffff;
+  margin-bottom: 5px;
+  margin-top: 10px;  
+  padding: 20px;
+}
+
+.parceiro-titulo {
+  font-size: 16px;
+  margin: 0px;
+  font-weight: bold;
+  color: black;
+}
+
+.parceiro-descricao {
+  font-size: 14px;
+  margin-top: 6px;
+  color: #777777;
+}
+
+.parceiro-vertodos {
+  color: #000000;
+  font-size: 12px;
+  font-family: "Poppins", sans-serif; 
+  padding-top: 5px;
+}
