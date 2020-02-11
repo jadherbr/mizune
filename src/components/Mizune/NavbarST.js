@@ -33,7 +33,7 @@ class NavbarST extends Component {
   }
 }
 
-const mapStateToProps = store => ({
+const mapStateToProps = store => ({ 
   user: store.loggedUser.user
 });
 

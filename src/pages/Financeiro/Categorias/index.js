@@ -4,7 +4,8 @@ import FrmPadrao from '../../../padrao/frmPadrao';
 import MizuneMasterPage from '../../../components/Mizune/MasterPage';
 import {
   List, Table, Tag, Popconfirm, Collapse, Tabs, Form,
-  Input, Row, Col, Menu, Button, Icon, Checkbox
+  Input, Row, Col, Menu, Button, Icon, Checkbox, Modal,
+  Radio, Spin
 } from 'antd';
 import Highlighter from 'react-highlight-words';
 
@@ -21,6 +22,8 @@ function Itemdetalhe(props) {
   />
 }
 
+
+
 class FinCategorias extends FrmPadrao {
 
   cNomeCampoChave = "id";
@@ -34,23 +37,87 @@ class FinCategorias extends FrmPadrao {
   ativos = 1; // 1 = sim, 0 = não, 2 = todos
 
   state = {
-    loading: false,
     listaRegistros: [],
     qdeRegistros: 1,
     registroSelecionado: null,
     activeKey: "",
     tabActiveKey: "",
-    descricaoAreaEdicao: "",
-    subSelecionado: null
+    subSelecionado: null,
+    pesquisaVisible: false,
+
+    filtros: [{ campo: "ativo", valor: true }]
   }
 
   componentDidMount() {
     this.getData();
   }
 
+  getDescricaoAreaEdicao() {
+    let reg = this.state.registroSelecionado;
+    if (reg) {
+      if (reg[this.cNomeCampoChave]) {
+        return "Alterando: " + reg[this.cNomeCampoChave] + ' - ' + reg[this.cNomeCampoDescricao];
+      } else {
+        return "Novo Registro";
+      }
+    } else {
+      return "";
+    }
+  }
+
+
+  async getSalvarCategoria() {
+
+    console.log('getSalvarCategoria');
+    let ret = true;
+    let categoria = null;
+    try {
+      this.setLoading(true);
+      this.props.form.validateFieldsAndScroll(['nmcontaspagarcategoria', 'ativo'], (err, values) => {
+        if (err) {
+          ret = false;
+        } else {
+          categoria = this.state.registroSelecionado;
+          this.getCopyData(values, categoria);
+        }
+      });
+
+      // Validando possivel lançamento no secundário
+      let erroSub = false;
+      if (this.state.subSelecionado) {
+        this.props.form.validateFields(['nmcontaspagarsubcategoria'], (err, values) => {
+          if (err) {
+            erroSub = true;
+          }
+        });
+      }
+      if (erroSub) {
+        this.setState({ tabActiveKey: "2" });
+        ret = false;
+      }
+
+      if (ret) {
+        let res = await api.post('/fin/savecontaspagarcategoria', categoria);
+        console.log(res.data);
+        this.setState({ registroSelecionado: res.data });
+        if (!categoria.id) {
+          // Novo Registro
+          // Insere na gride
+          let gride = this.state.listaRegistros;
+          gride.push(res.data);
+          this.setState({ listaRegistros: gride });
+        }
+      }
+      return ret;
+    } catch (err) {
+      return false;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
   submitSubCategoria = (e) => {
     e.preventDefault();
-
     this.props.form.validateFields(['nmcontaspagarsubcategoria'], (err, values) => {
       if (!err) {
         let categoria = this.state.registroSelecionado;
@@ -79,52 +146,14 @@ class FinCategorias extends FrmPadrao {
   //  SUBMIT
   submitCategoria = (e) => {
     e.preventDefault();
-    this.props.form.validateFieldsAndScroll(['nmcontaspagarcategoria', 'ativo'], async (err, values) => {
-      if (!err) {
-        try {
-          let registroSelecionado = this.state.registroSelecionado;
-          this.getCopyData(values, registroSelecionado);
-          //this.setState({ loading: true });
-          let response = null;
-
-          response = await api.post('/fin/salvarcategoria/', registroSelecionado);
-          console.log(response);
-          return;
-
-
-          if (typeof values.id == 'undefined') {
-            response = await api.post(this.URL_API_NEW, values);
-          } else {
-            response = await api.put(this.URL_API_ALTER + values.id, values);
-          }
-          if (response.status === 200) {
-            this.getMessageSuccess("Salvo com sucesso!");
-            this.getData();
-          } else {
-            this.getMessageError(response.statusText);
-          }
-          console.log(response);
-        } catch (error) {
-          if (error.response) {
-            if (error.response.status === 403) {
-              if (error.response.data.msg) {
-                this.getMessageAlert(error.response.data.msg);
-              }
-            }
-          } else {
-            console.log('Error', error.message);
-          }
-          console.log(error);
-        } finally {
-          this.setState({ loading: false });
-          this.getCancelar();
-        }
-      }
-    });
+    if (this.getSalvarCategoria()) {
+      this.getCancelar();
+    }
+    
   }
 
   deletePrincipalHandle(id) {
-    this.setState({ loading: true });
+
     try {
       api.delete('/fin/excluirCategoria/' + id)
         .then(result => {
@@ -148,13 +177,13 @@ class FinCategorias extends FrmPadrao {
       console.log(error);
     }
     finally {
-      this.setState({ loading: false });
+
     }
   }
 
   deleteDetalheHandle(id) {
     console.log("delete> " + id);
-    this.setState({ loading: true });
+
     try {
       let categoria = this.state.registroSelecionado;
       let subcategoria = categoria.contaspagarsubcategoria.find(el => {
@@ -171,7 +200,7 @@ class FinCategorias extends FrmPadrao {
       console.log(error.message);
     }
     finally {
-      this.setState({ loading: false });
+
     }
   }
 
@@ -189,7 +218,6 @@ class FinCategorias extends FrmPadrao {
   getNovo = () => {
     this.setState({
       registroSelecionado: { id: "", nmcontaspagarcategoria: "", contaspagarsubcategoria: [], ativo: true },
-      descricaoAreaEdicao: "Novo Registro",
       tabActiveKey: "1"
     });
     this.props.form.resetFields();
@@ -199,9 +227,13 @@ class FinCategorias extends FrmPadrao {
   getCancelar = () => {
     this.setState({
       registroSelecionado: null,
-      descricaoAreaEdicao: ""
     });
     this.closeCollapse();
+  }
+
+  getCancelarSub = () => {
+    this.setState({ subSelecionado: null });
+    this.props.form.resetFields(['nmcontaspagarsubcategoria']);
   }
 
   alterarHandle(registro) {
@@ -212,9 +244,9 @@ class FinCategorias extends FrmPadrao {
     this.setState({
       registroSelecionado: registro,
       subSelecionado: null,
-      descricaoAreaEdicao: "Alterando: " + registro[this.cNomeCampoChave] + ' - ' + registro[this.cNomeCampoDescricao]
     }, () => {
       this.openCollapse();
+      this.setState({ tabActiveKey: "1" });
     });
   }
 
@@ -230,7 +262,7 @@ class FinCategorias extends FrmPadrao {
   }
 
   novaSubCategoria() {
-    this.setState({ subSelecionado: { id: new Date().getTime(), nmcontaspagarsubcategoria: "" } });
+    this.setState({ subSelecionado: { id: new Date().getTime(), nmcontaspagarsubcategoria: "", ativo: true } });
   }
 
   /*   async getData() {
@@ -249,86 +281,19 @@ class FinCategorias extends FrmPadrao {
       }
     } */
 
-  tabDetalhesChangeHandle = (selectedkey) => {
+  tabDetalhesChangeHandle = async (selectedkey) => {
+    // Só vou chamar o método se for novo registro
+    if ((selectedkey == "2") && (!this.state.registroSelecionado.id)) {
+      if (!await this.getSalvarCategoria()) {
+        return;
+      }
+    }
     this.setState({ tabActiveKey: selectedkey });
   };
 
-  handleSearch = (selectedKeys, confirm, dataIndex) => {
-    this.searchText = selectedKeys[0];
-    this.searchedColumn = dataIndex;
-    console.log(selectedKeys);
-    confirm();
-  };
-
-  handleReset = clearFilters => {
-    this.searchText = "";
-    clearFilters();
-  };
-
-  getColumnSearchProps = dataIndex => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={node => {
-            this.searchInput = node;
-          }}
-          placeholder={'Buscar'}
-          value={selectedKeys[0]}
-          onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => this.handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ width: 188, marginBottom: 8, display: 'block' }}
-        />
-        <Button
-          type="primary"
-          onClick={() => this.handleSearch(selectedKeys, confirm, dataIndex)}
-          icon="search"
-          size="small"
-          style={{ width: 90, marginRight: 8 }}>
-          Buscar
-        </Button>
-        <Button onClick={() => this.handleReset(clearFilters)} size="small" style={{ width: 90 }}>
-          Limpar
-        </Button>
-      </div>
-    ),
-    filterIcon: filtered => (
-      <Icon type="search" style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
-    onFilter: (value, record) =>
-      record[dataIndex]
-        .toString()
-        .toLowerCase()
-        .includes(value.toLowerCase()),
-    onFilterDropdownVisibleChange: visible => {
-      if (visible) {
-        setTimeout(() => this.searchInput.select());
-      }
-    },
-    render: text =>
-      this.searchedColumn === dataIndex ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-          searchWords={[this.searchText]}
-          autoEscape
-          textToHighlight={text.toString()}
-        />
-      ) : (
-          text
-        ),
-  });
-
-
-
-
   onTableChange = (pagination, filters, sorter) => {
-    console.log("TableChange >>  ")
-    //console.log(pagination);
     console.log(filters);
-    //console.log(sorter);
-
-    //
-
-    if (filters.ativo.length === 1) {
+    if ((filters.ativo) && (filters.ativo.length === 1)) {
       this.ativos = filters.ativo[0] ? 1 : 0;
     } else {
       this.ativos = 2;
@@ -343,11 +308,34 @@ class FinCategorias extends FrmPadrao {
 
   async getData() {
     try {
-      this.setState({ loading: true });
-      const str = `/fin/categoriaspag?pag=${this.paginaAtual}&qde=${this.qdePorPag}
+      let obj = { xesque: 1, sss: 3333 };
+
+
+      let vParams = {
+        pag: this.paginaAtual,
+        qde: this.qdePorPag,
+        sortColumn: this.sortColumn,
+        sortOrder: this.sortOrder,
+        searchedColumn: this.searchedColumn,
+        searchText: this.searchText,
+        ativos: this.ativos,
+        filtros: this.state.filtros
+      }
+
+      /*const str = `/fin/categoriaspag?pag=${this.paginaAtual}&qde=${this.qdePorPag}
         &sortColumn=${this.sortColumn}&sortOrder=${this.sortOrder}&searchedColumn=${this.searchedColumn}
         &searchText=${this.searchText}&ativos=${this.ativos}`;
-      const res = await api.get(str);
+      */
+
+      const str = `/fin/categoriaspag`;
+
+
+
+      const res = await api.get(str, {
+        params: vParams,
+        data: vParams
+      });
+
       console.log(res);
       this.setState({
         listaRegistros: res.data.data,
@@ -356,13 +344,45 @@ class FinCategorias extends FrmPadrao {
     } catch (err) {
       console.log(err.response.data.msg);
     } finally {
-      this.setState({ loading: false });
+
     }
   }
 
 
 
+  //  Pesquisa
+  abrirPesquisa = () => {
+    this.setState({ pesquisaVisible: true });
+  }
+  pesquisaCancelar = e => {
+    console.log(e);
+    this.setState({ pesquisaVisible: false });
+  };
+  pesquisaSubmit = (e) => {
+    e.preventDefault();
+    this.props.form.validateFieldsAndScroll(['pesqCategoria', 'pesqSubCategoria', 'pesqAtivos'], async (err, values) => {
+      if (!err) {
+        let filtros = [];
+        if (values.pesqCategoria) {
+          filtros.push({ campo: 'nmcontaspagarcategoria', valor: values.pesqCategoria, operador: 'LIKE' });
+        }
+        if (values.pesqSubCategoria) {
+          filtros.push({ campo: 'nmcontaspagarsubcategoria', valor: values.pesqSubCategoria, operador: 'LIKE' });
+        }
+        if (values.pesqAtivos != "2") {
+          filtros.push({ campo: 'ativo', valor: values.pesqAtivos == "1" });
+        }
+        this.setState({ pesquisaVisible: false, filtros }, () => {
+          this.getData();
+        });
+      }
+    });
+  }
+
+
+
   render() {
+
     const columnsDetalhe = [
       {
         key: 'nmcontaspagarsubcategoria',
@@ -402,17 +422,14 @@ class FinCategorias extends FrmPadrao {
         title: 'Categoria',
         dataIndex: 'nmcontaspagarcategoria',
         key: 'nmcontaspagarcategoria',
-        sorter: true,
-        ... this.getColumnSearchProps('nmcontaspagarcategoria'),
+        sorter: true
       },
 
       {
         title: 'Ativo',
         key: 'ativo',
         align: 'center',
-        defaultFilteredValue: [true],
         width: 80,
-        filters: [{ text: 'Sim', value: true }, { text: 'Não', value: false }],
         render: (record) => (
           <span>
             <Tag color={record.ativo ? 'blue' : 'volcano'}>
@@ -467,7 +484,7 @@ class FinCategorias extends FrmPadrao {
                 icon="save"
                 htmlType="submit"
                 disabled={!this.state.registroSelecionado}
-                loading={this.state.loading}>
+              >
                 Salvar
               </Button>
             </Menu.Item>
@@ -477,10 +494,21 @@ class FinCategorias extends FrmPadrao {
                 Cancelar
               </a>
             </Menu.Item>
+
+            <Menu.Item>
+              <Button
+                onClick={this.abrirPesquisa.bind(this)}
+                disabled={this.state.registroSelecionado}
+                type="link"
+                icon="search">
+                Pesquisar
+              </Button>
+            </Menu.Item>
           </Menu>
 
+
           <Collapse activeKey={this.state.activeKey} onChange={this.painelEdicaoChangeHandle} >
-            <Collapse.Panel showArrow={false} header={this.state.descricaoAreaEdicao} key="1">
+            <Collapse.Panel showArrow={false} header={this.getDescricaoAreaEdicao()} key="1">
               <Tabs defaultActiveKey="1" size="small" activeKey={this.state.tabActiveKey} onChange={this.tabDetalhesChangeHandle}>
                 <Tabs.TabPane tab="Dados" key="1">
                   <Form id="frmPrincipal" {...this.layoutSideBySyde} onSubmit={this.submitCategoria} contextMenu="" >
@@ -499,7 +527,7 @@ class FinCategorias extends FrmPadrao {
                     </Form.Item>
                   </Form>
                 </Tabs.TabPane>
-                <Tabs.TabPane tab="Detalhe" key="2">
+                <Tabs.TabPane tab="Detalhe" key="2" >
                   <Row>
                     <Col span={12}>
                       <Table
@@ -519,16 +547,25 @@ class FinCategorias extends FrmPadrao {
                         <Menu mode="horizontal">
                           <Menu.Item disabled={this.state.subSelecionado}>
                             <a href="#" onClick={this.novaSubCategoria.bind(this)}>
+                              <Icon type="diff" />
                               Novo
                             </a>
                           </Menu.Item>
-                          <Menu.Item disabled={!this.state.subSelecionado}>
+                          <Menu.Item>
                             <Button type="link"
                               htmlType="submit"
-                              disabled={!this.state.subSelecionado}
-                              loading={this.state.loading}>
+                              icon="save"
+                              form="frmSubCategoria"
+                              disabled={!this.state.subSelecionado}>
                               Salvar
                           </Button>
+                          </Menu.Item>
+                          <Menu.Item disabled={!this.state.subSelecionado}>
+                            <a href="#"
+                              onClick={this.getCancelarSub.bind(this)}>
+                              <Icon type="close" />
+                              Cancelar
+                            </a>
                           </Menu.Item>
                         </Menu>
                         <Form.Item
@@ -545,6 +582,7 @@ class FinCategorias extends FrmPadrao {
 
             </Collapse.Panel>
           </Collapse>
+
           <Table
             pagination={{
               showSizeChanger: true,
@@ -563,10 +601,52 @@ class FinCategorias extends FrmPadrao {
             onChange={this.onTableChange}
           />
 
+          <Modal
+            title="Pesquisar"
+            visible={this.state.pesquisaVisible}
+            footer={[
+              <Button
+                type="default"
+                onClick={this.pesquisaCancelar}
+                key="cancelar">
+                Cancelar
+              </Button>,
+              <Button type="primary"
+                htmlType="submit"
+                key="submit"
+                form='frmPesquisa'>
+                Pesquisar
+              </Button>
+            ]}
+          >
 
-
+            <Form id="frmPesquisa" {...this.layoutSideBySyde} onSubmit={this.pesquisaSubmit} contextMenu="" >
+              <Form.Item
+                label={<span>Categoria</span>}>
+                {getFieldDecorator('pesqCategoria')(<Input />)}
+              </Form.Item>
+              <Form.Item
+                label={<span>Sub-Categ.</span>}>
+                {getFieldDecorator('pesqSubCategoria')(<Input />)}
+              </Form.Item>
+              <Form.Item
+                label={<span>Ativos</span>}>
+                {getFieldDecorator('pesqAtivos', {
+                  initialValue: "1"
+                })(
+                  <Radio.Group>
+                    <Radio value="1">Sim</Radio >
+                    <Radio value="0">Não</Radio >
+                    <Radio value="2">Todos</Radio >
+                  </Radio.Group>
+                )}
+              </Form.Item>
+            </Form>
+          </Modal>
         </MizuneMasterPage>
       </>
+
+
 
     );
   }

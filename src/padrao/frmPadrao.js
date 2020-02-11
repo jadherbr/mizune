@@ -1,5 +1,7 @@
 import React from 'react';
 import { message } from 'antd';
+import store from '../store';
+import '../store/reducers/loading';
 
 export default class FrmPadrao extends React.Component {
 
@@ -78,5 +80,10 @@ export default class FrmPadrao extends React.Component {
     });
   }
 
+  setLoading(value) {    
+    store.dispatch({type:'UPDATE_LOADING', loading:value});
+  }
+
+ 
 
 }
