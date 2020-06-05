@@ -7,6 +7,10 @@ import AlterarSenha from './pages/login/alterarsenha';
 import { isAuthenticated } from './services/auth';
 import FinanceiroInicial from './pages/Financeiro/Inicial';
 import FinCategorias from './pages/Financeiro/Categorias';
+import FinContasFixas from './pages/Financeiro/ContasFixas';
+import FinContasPagar from './pages/Financeiro/ContasPagar';
+
+
 import Estados from './pages/Generico/Estados';
 import Municipios from './pages/Generico/Municipios';
 
@@ -22,13 +26,17 @@ const Routes = () => (
     
     {isAuth ? (
       <>
-      <Route exact path="/financeiro" component={FinanceiroInicial}/>
-      <Route exact path="/financeiro/categorias" component={FinCategorias}/>
       <Route exact path="/logout" component={Logout}/>
       <Route exact path="/alterarsenha" component={AlterarSenha}/>
 
       <Route exact path="/gen/estados" component={Estados}/>
       <Route exact path="/gen/municipios" component={Municipios}/>
+
+      
+      <Route exact path="/financeiro" component={FinanceiroInicial}/>
+      <Route exact path="/financeiro/categorias" component={FinCategorias}/>
+      <Route exact path="/financeiro/contasfixas" component={FinContasFixas}/>
+      <Route exact path="/financeiro/contaspagar" component={FinContasPagar}/>      
       </>
     ):''}
     

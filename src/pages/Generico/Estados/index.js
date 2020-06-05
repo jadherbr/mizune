@@ -102,7 +102,7 @@ class Estados extends FrmPadrao {
                                             <td>{estado.cdibge}</td>
                                             <td>{estado.brasao}</td>
                                             <td>
-                                                <a href="#">
+                                                <a href="/">
                                                     <Badge variant="warning">Alterar</Badge>
                                                 </a>
                                                 &nbsp;
@@ -111,7 +111,7 @@ class Estados extends FrmPadrao {
                                                     onConfirm={() => { this.doConfirm(estado.id); }}
                                                     okText="Sim"
                                                     cancelText="Não">
-                                                    <a href="#">
+                                                    <a href="/">
                                                         <Badge variant="danger">Excluir</Badge>
                                                     </a>
                                                 </Popconfirm>

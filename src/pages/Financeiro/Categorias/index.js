@@ -1,28 +1,12 @@
-import React, { Component } from 'react';
+import React from 'react';
 import api from '../../../services/api';
 import FrmPadrao from '../../../padrao/frmPadrao';
 import MizuneMasterPage from '../../../components/Mizune/MasterPage';
 import {
   List, Table, Tag, Popconfirm, Collapse, Tabs, Form,
   Input, Row, Col, Menu, Button, Icon, Checkbox, Modal,
-  Radio, Spin
+  Radio
 } from 'antd';
-import Highlighter from 'react-highlight-words';
-
-function Itemdetalhe(props) {
-  return <List
-    size="small"
-    itemLayout="horizontal"
-    dataSource={props.registro}
-    renderItem={item => (
-      <List.Item>
-        <List.Item.Meta description={item.nmcontaspagarsubcategoria} />
-      </List.Item>
-    )}
-  />
-}
-
-
 
 class FinCategorias extends FrmPadrao {
 
@@ -144,24 +128,23 @@ class FinCategorias extends FrmPadrao {
   }
 
   //  SUBMIT
-  submitCategoria = (e) => {
+  submitCategoria = async (e) => {
     e.preventDefault();
-    if (this.getSalvarCategoria()) {
+    if (await this.getSalvarCategoria()) {
       this.getCancelar();
     }
-    
   }
 
   deletePrincipalHandle(id) {
-
     try {
+      this.setLoading(true);
       api.delete('/fin/excluirCategoria/' + id)
         .then(result => {
           let tmp = this.state.listaRegistros.filter(function (e) {
             return e.id !== id;
           });
           this.setState({ listaRegistros: tmp });
-          console.log(result);
+          this.getMessageInf('Registro excluído.');
         }
         );
     } catch (error) {
@@ -174,10 +157,11 @@ class FinCategorias extends FrmPadrao {
       } else {
         console.log('Error', error.message);
       }
+      this.getMessageError('Falha ao excluir o registro.');
       console.log(error);
     }
     finally {
-
+      this.setLoading(false);
     }
   }
 
@@ -227,8 +211,9 @@ class FinCategorias extends FrmPadrao {
   getCancelar = () => {
     this.setState({
       registroSelecionado: null,
+    }, () => {
+      this.closeCollapse();
     });
-    this.closeCollapse();
   }
 
   getCancelarSub = () => {
@@ -237,16 +222,15 @@ class FinCategorias extends FrmPadrao {
   }
 
   alterarHandle(registro) {
-    console.log(registro);
-    this.props.form.setFieldsValue({
-      ...registro
-    });
     this.setState({
       registroSelecionado: registro,
       subSelecionado: null,
+      tabActiveKey: "1"
     }, () => {
+      this.props.form.setFieldsValue({
+        ...registro
+      });
       this.openCollapse();
-      this.setState({ tabActiveKey: "1" });
     });
   }
 
@@ -308,9 +292,6 @@ class FinCategorias extends FrmPadrao {
 
   async getData() {
     try {
-      let obj = { xesque: 1, sss: 3333 };
-
-
       let vParams = {
         pag: this.paginaAtual,
         qde: this.qdePorPag,
@@ -441,27 +422,28 @@ class FinCategorias extends FrmPadrao {
       {
         title: 'Opções',
         key: 'options',
-        align: 'center',
-        width: 180,
+        width: 100,
         render: (record) => (
           <span>
-            <Tag color='blue' >
+            <Tag color='blue' style={{ height: '26px' }}>
               <a href="#" onClick={() => { this.alterarHandle(record); }}>
-                Alterar
+                <Icon type="edit" />
               </a>
             </Tag>
-            <Tag color='volcano' >
+            <Tag color='volcano' style={{ height: '26px' }}>
               <Popconfirm
-                title="Confirma a exclusão desta categoria?"
+                title="Confirma a exclusão deste registro?"
                 onConfirm={() => { this.deletePrincipalHandle(record.id); }}
                 okText="Sim"
                 cancelText="Não">
-                <a href="#">Excluir</a>
+                <a href="#">
+                  <Icon type="delete" />
+                </a>
               </Popconfirm>
             </Tag>
           </span>
         ),
-      },
+      }
     ];
 
     const { getFieldDecorator } = this.props.form;
@@ -508,79 +490,81 @@ class FinCategorias extends FrmPadrao {
 
 
           <Collapse activeKey={this.state.activeKey} onChange={this.painelEdicaoChangeHandle} >
-            <Collapse.Panel showArrow={false} header={this.getDescricaoAreaEdicao()} key="1">
-              <Tabs defaultActiveKey="1" size="small" activeKey={this.state.tabActiveKey} onChange={this.tabDetalhesChangeHandle}>
-                <Tabs.TabPane tab="Dados" key="1">
-                  <Form id="frmPrincipal" {...this.layoutSideBySyde} onSubmit={this.submitCategoria} contextMenu="" >
-                    <Form.Item
-                      label={<span>Categoria</span>}>
-                      {getFieldDecorator('nmcontaspagarcategoria', {
-                        rules: [{ required: true, message: 'Informe o nome da Categoria!' }],
-                      })(<Input />)}
-                    </Form.Item>
-                    <Form.Item
-                      label={<span>Ativo</span>}>
-                      {getFieldDecorator('ativo', {
-                        initialValue: true,
-                        valuePropName: 'checked'
-                      })(<Checkbox />)}
-                    </Form.Item>
-                  </Form>
-                </Tabs.TabPane>
-                <Tabs.TabPane tab="Detalhe" key="2" >
-                  <Row>
-                    <Col span={12}>
-                      <Table
-                        locale={{ emptyText: 'Nenhum registro encontrado' }}
-                        rowKey='id'
-                        scroll={{ y: 200 }}
-                        size='small'
-                        bordered={true}
-                        columns={columnsDetalhe}
-                        pagination={false}
-                        showHeader={false}
-                        dataSource={this.state.registroSelecionado ? this.state.registroSelecionado.contaspagarsubcategoria : []}
-                      />
-                    </Col>
-                    <Col span={11} style={{ marginLeft: '10px', height: '200px', borderLeft: '1px dotted gray' }}>
-                      <Form id="frmSubCategoria" {...this.lyMeiaTela} onSubmit={this.submitSubCategoria} contextMenu="" >
-                        <Menu mode="horizontal">
-                          <Menu.Item disabled={this.state.subSelecionado}>
-                            <a href="#" onClick={this.novaSubCategoria.bind(this)}>
-                              <Icon type="diff" />
-                              Novo
+            {!this.state.registroSelecionado ? null : (
+              <Collapse.Panel showArrow={false} header={this.getDescricaoAreaEdicao()} key="1">
+                <Tabs defaultActiveKey="1" size="small" activeKey={this.state.tabActiveKey} onChange={this.tabDetalhesChangeHandle}>
+                  <Tabs.TabPane tab="Dados" key="1">
+                    <Form id="frmPrincipal" {...this.layoutSideBySyde} onSubmit={this.submitCategoria} contextMenu="" >
+                      <Form.Item
+                        label={<span>Categoria</span>}>
+                        {getFieldDecorator('nmcontaspagarcategoria', {
+                          rules: [{ required: true, message: 'Informe o nome da Categoria!' }],
+                        })(<Input />)}
+                      </Form.Item>
+                      <Form.Item
+                        label={<span>Ativo</span>}>
+                        {getFieldDecorator('ativo', {
+                          initialValue: true,
+                          valuePropName: 'checked'
+                        })(<Checkbox />)}
+                      </Form.Item>
+                    </Form>
+                  </Tabs.TabPane>
+                  <Tabs.TabPane tab="Detalhe" key="2" >
+                    <Row>
+                      <Col span={12}>
+                        <Table
+                          locale={{ emptyText: 'Nenhum registro encontrado' }}
+                          rowKey='id'
+                          scroll={{ y: 200 }}
+                          size='small'
+                          bordered={true}
+                          columns={columnsDetalhe}
+                          pagination={false}
+                          showHeader={false}
+                          dataSource={this.state.registroSelecionado ? this.state.registroSelecionado.contaspagarsubcategoria : []}
+                        />
+                      </Col>
+                      <Col span={11} style={{ marginLeft: '10px', height: '200px', borderLeft: '1px dotted gray' }}>
+                        <Form id="frmSubCategoria" {...this.lyMeiaTela} onSubmit={this.submitSubCategoria} contextMenu="" >
+                          <Menu mode="horizontal">
+                            <Menu.Item disabled={this.state.subSelecionado}>
+                              <a href="#" onClick={this.novaSubCategoria.bind(this)}>
+                                <Icon type="diff" />
+                                Novo
                             </a>
-                          </Menu.Item>
-                          <Menu.Item>
-                            <Button type="link"
-                              htmlType="submit"
-                              icon="save"
-                              form="frmSubCategoria"
-                              disabled={!this.state.subSelecionado}>
-                              Salvar
+                            </Menu.Item>
+                            <Menu.Item>
+                              <Button type="link"
+                                htmlType="submit"
+                                icon="save"
+                                form="frmSubCategoria"
+                                disabled={!this.state.subSelecionado}>
+                                Salvar
                           </Button>
-                          </Menu.Item>
-                          <Menu.Item disabled={!this.state.subSelecionado}>
-                            <a href="#"
-                              onClick={this.getCancelarSub.bind(this)}>
-                              <Icon type="close" />
-                              Cancelar
+                            </Menu.Item>
+                            <Menu.Item disabled={!this.state.subSelecionado}>
+                              <a href="#"
+                                onClick={this.getCancelarSub.bind(this)}>
+                                <Icon type="close" />
+                                Cancelar
                             </a>
-                          </Menu.Item>
-                        </Menu>
-                        <Form.Item
-                          label={<span>Sub Categoria</span>}>
-                          {getFieldDecorator('nmcontaspagarsubcategoria', {
-                            rules: [{ required: true, message: 'Informe o nome da Sub Categoria!' }],
-                          })(<Input disabled={!this.state.subSelecionado} />)}
-                        </Form.Item>
-                      </Form>
-                    </Col>
-                  </Row>
-                </Tabs.TabPane>
-              </Tabs>
+                            </Menu.Item>
+                          </Menu>
+                          <Form.Item
+                            label={<span>Sub Categoria</span>}>
+                            {getFieldDecorator('nmcontaspagarsubcategoria', {
+                              rules: [{ required: true, message: 'Informe o nome da Sub Categoria!' }],
+                            })(<Input disabled={!this.state.subSelecionado} />)}
+                          </Form.Item>
+                        </Form>
+                      </Col>
+                    </Row>
+                  </Tabs.TabPane>
+                </Tabs>
 
-            </Collapse.Panel>
+              </Collapse.Panel>
+            )}
           </Collapse>
 
           <Table
@@ -604,6 +588,7 @@ class FinCategorias extends FrmPadrao {
           <Modal
             title="Pesquisar"
             visible={this.state.pesquisaVisible}
+            onCancel={this.pesquisaCancelar}
             footer={[
               <Button
                 type="default"

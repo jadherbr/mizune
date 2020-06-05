@@ -3,7 +3,6 @@
     top:-10px;
     width: 220px;
     height: 5vh;
-    background: rgba(255, 255, 255, 0.2);
     margin: 0 0 0 0;
     padding: 0 0 0 0;
     float: left;
@@ -11,3 +10,10 @@
     font-size: 20px;
     font-weight: bold;
   }
+.logo a {
+  color: #4d4dff;
+  font-size: 20px;
+}
+.logo a:hover {
+  color: #4d4dff;
+}

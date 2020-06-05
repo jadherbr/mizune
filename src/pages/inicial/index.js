@@ -1,13 +1,5 @@
 import React, { Component } from 'react';
-import api, { baseURLAPI } from '../../services/api';
-import MasterPage from '../../components/MasterPage';
-import ReactFBLike from 'react-fb-like';
-import IndexAtividades from '../../components/studiotaurus/IndexAtividades/'
-import IndexMaterias from '../../components/studiotaurus/IndexMaterias/'
-import IndexVideos from '../../components/studiotaurus/IndexVideos/'
-import IndexParceiros from '../../components/studiotaurus/IndexParceiros/'
-import { Spinner, Card, Row, Col, Container } from 'react-bootstrap';
-
+import MizuneMasterPage from '../../components/Mizune/MasterPage';
 import './style.css';
 
 export default class Inicial extends Component {
@@ -38,10 +30,10 @@ export default class Inicial extends Component {
 
     return (
       <>
-        <MasterPage tituloCabecalho='titulo inicial'>
+        <MizuneMasterPage>
 
           
-        </MasterPage>
+        </MizuneMasterPage>
       </>
 
     );
